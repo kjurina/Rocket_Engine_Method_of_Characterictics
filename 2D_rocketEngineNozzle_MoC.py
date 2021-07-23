@@ -250,6 +250,133 @@ class rocketEngineNozzle_MoC():
         
         
         
+        
+    def Meshing(self):
+        self.xpoints = np.zeros(self.n+1)
+        self.ypoints = np.zeros(self.n+1)
+        self.xpoints[0] = self.x0
+        self.ypoints[0] = self.y0
+        for i in range(self.n):
+            self.xpoints[i+1] = self.xp[self.n-i,i]
+            self.ypoints[i+1] = self.yp[self.n-i,i]
+                            
+        gmsh.initialize()
+        gmsh.model.add("2D_conv_div_nozzle")
+        
+        self.D0 = self.D_t*2.403
+        self.x0_=-self.xpoints[self.n]/6
+        self.y0_=self.D0/2
+        self.x0__=self.x0_*0.7
+        self.y0__=self.y0+self.y0*0.2
+        
+        gmsh.model.geo.addPoint(self.x0_,self.y0_, 0, 1, 1)
+        gmsh.model.geo.addPoint(self.x0__,self.y0__, 0, 1, 2)
+        
+        for i in range(len(self.xpoints)):
+            gmsh.model.geo.addPoint(self.xpoints[i],self.ypoints[i], 0, 1, i+3)
+            
+        gmsh.model.geo.addPoint(self.x0_,-self.y0_, 0, 1, self.n+4)
+        gmsh.model.geo.addPoint(self.x0__,-self.y0__, 0, 1, self.n+5)
+        
+        for i in range(len(self.xpoints)):
+            gmsh.model.geo.addPoint(self.xpoints[i],self.ypoints[i]*(-1), 0, 1, self.n+6+i)
+         
+        self.f1 = [1, 2, 3]
+        self.f2 = np.zeros(self.n+1)
+        self.f3 = [self.n+4,self.n+5,self.n+6]
+        self.f4 = np.zeros(self.n+1)
+        
+        for i in range(len(self.xpoints)):
+            self.f2[i] = 3+i
+        for i in range(len(self.xpoints)):
+            self.f4[i] = self.n+6+i
+        gmsh.model.geo.addBezier(self.f1,1)
+        gmsh.model.geo.addSpline(self.f2,2)
+        gmsh.model.geo.addBezier(self.f3,3)    
+        gmsh.model.geo.addSpline(self.f4,4)
+        
+             
+        gmsh.model.geo.addPoint(self.x0_,0, 0, 1, 2*self.n+7)
+        gmsh.model.geo.addPoint(0, 0, 0, 1, 2*self.n+8)
+        gmsh.model.geo.addPoint(self.xpoints[self.n],0, 0, 1, 2*self.n+9)
+        
+            
+        gmsh.model.geo.addLine(1,2*self.n+7,5)
+        gmsh.model.geo.addLine(3,2*self.n+8,6)
+        gmsh.model.geo.addLine(self.n+3,2*self.n+9,7)
+        
+        gmsh.model.geo.addLine(self.n+4,2*self.n+7,8)
+        gmsh.model.geo.addLine(self.n+6,2*self.n+8,9)
+        gmsh.model.geo.addLine(2*(self.n+3),2*self.n+9,10)
+        
+        gmsh.model.geo.addLine(2*self.n+7,2*self.n+8,11)
+        gmsh.model.geo.addLine(2*self.n+8,2*self.n+9,12)
+        
+        gmsh.model.geo.addCurveLoop([1,6,-11,-5], 1)
+        gmsh.model.geo.addCurveLoop([2,7,-12,-6], 2)
+        gmsh.model.geo.addCurveLoop([3,9,-11,-8], 3)
+        gmsh.model.geo.addCurveLoop([4,10,-12,-9], 4)
+        
+        gmsh.model.geo.addPlaneSurface([1], 1)
+        gmsh.model.geo.addPlaneSurface([2], 2)
+        gmsh.model.geo.addPlaneSurface([3], 4)
+        gmsh.model.geo.addPlaneSurface([4], 5)
+        
+        self.msup = 70;
+        self.msub = 15;
+        self.central = 10;
+        
+        gmsh.model.geo.mesh.setTransfiniteCurve(1,self.msub,"Progression",1)
+        gmsh.model.geo.mesh.setTransfiniteCurve(2,self.msup,"Progression",1)
+        gmsh.model.geo.mesh.setTransfiniteCurve(3,self.msub,"Progression",1)
+        gmsh.model.geo.mesh.setTransfiniteCurve(4,self.msup,"Progression",1)
+        
+        gmsh.model.geo.mesh.setTransfiniteCurve(5,self.central,"Progression",1)
+        gmsh.model.geo.mesh.setTransfiniteCurve(6,self.central,"Progression",1)
+        gmsh.model.geo.mesh.setTransfiniteCurve(7,self.central,"Progression",1)
+        gmsh.model.geo.mesh.setTransfiniteCurve(8,self.central,"Progression",1)
+        gmsh.model.geo.mesh.setTransfiniteCurve(9,self.central,"Progression",1)
+        gmsh.model.geo.mesh.setTransfiniteCurve(10,self.central,"Progression",1)
+        
+        gmsh.model.geo.mesh.setTransfiniteCurve(11,self.msub,"Progression",1)
+        gmsh.model.geo.mesh.setTransfiniteCurve(12,self.msup,"Progression",1)
+                        
+        for i in range(5):
+            gmsh.model.geo.mesh.setTransfiniteSurface(i+1)         
+        gmsh.option.setNumber("Mesh.RecombineAll", 1)  
+        
+                
+        for i in range(5):
+            gmsh.model.geo.extrude([(2,1+i)],0,0,self.D_t/2,[1],recombine=(True))
+        gmsh.model.geo.synchronize()
+        
+        g1 = gmsh.model.addPhysicalGroup(2,[33,77])
+        g2 = gmsh.model.addPhysicalGroup(2,[47,91])
+        g3 = gmsh.model.addPhysicalGroup(2,[21,43,87,65]) 
+        g4 = gmsh.model.addPhysicalGroup(2,[100,5,56,2,78,4,1,34])
+        g5 = gmsh.model.addPhysicalGroup(3,[1,2,3,4])
+        
+
+        gmsh.model.setPhysicalName(2, g1, "inlet")
+        gmsh.model.setPhysicalName(2, g2, "outlet") 
+        gmsh.model.setPhysicalName(2, g3, "wall") 
+        gmsh.model.setPhysicalName(2, g4, "frontAndBack") 
+        gmsh.model.setPhysicalName(3, g5, "internalMesh") 
+                                         
+        gmsh.model.mesh.generate(3)
+        gmsh.write("rocket_nozzle.msh2")
+        
+        
+        #if '-nopopup' not in sys.argv:
+        #    gmsh.fltk.run()               
+        gmsh.finalize()
+        
+        
+        
+c = rocketEngineNozzle_MoC(3, 20, 0.2)
+#c.plotting()
+c.Meshing()
+        
         ###########
         
             
