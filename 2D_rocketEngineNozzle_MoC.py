@@ -14,7 +14,7 @@ meshing = False
 #=========================#
 M_e = 2.0                         #design exit Mach number
 n = 20                            #number of characteristics
-D_t = 0.5                         #throat diameter at inlet 
+D_t = 0.5                         #throat diameter  
 #=========================#  
   
 gamma = 1.4     
